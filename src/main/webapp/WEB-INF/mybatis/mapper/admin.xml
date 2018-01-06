@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="bit.dao.AdminDAO">
+
+    <insert id="insertRequestLog" parameterType="requestLog">
+        INSERT INTO request_log
+        (
+            id,
+            ip,
+            url
+        )
+        VALUES
+        (
+            #{id},
+            #{ip},
+            #{url}
+        )
+    </insert>
+
+    <select id="selectNotice" parameterType="string" resultType="notice">
+      select
+          no,
+          title,
+          content,
+          reg_agent "regAgent",
+          reg_date "regDate",
+          update_date "updateDate",
+          hit_count "hitCount"
+        from notice_info
+            where reg_agent = #{regAgent}
+            and use_flag = TRUE
+        order by no DESC
+    </select>
+
+
+    <select id="selectNoticeOne" parameterType="string" resultType="notice">
+
+        select
+          no,
+          title,
+          content,
+          reg_agent "regAgent",
+          reg_date "regDate",
+          update_date "updateDate",
+          hit_count "hitCount"
+        from notice_info
+            where no = #{regAgent}::INTEGER
+            and use_flag = TRUE
+        order by no DESC
+
+    </select>
+
+    <select id="selectNews" parameterType="string" resultType="news">
+        select
+            no,
+            title,
+            content,
+            reg_agent "regAgent",
+            reg_date "regDate",
+            update_date "updateDate",
+            hit_count "hitCount"
+        from news_info
+            where reg_agent = #{regAgent}
+            and use_flag = TRUE
+        order by no DESC
+    </select>
+
+    <update id="updateHitCount" parameterType="int">
+        UPDATE notice_info
+        SET hit_count = hit_count + 1
+        WHERE no = #{no}
+    </update>
+
+</mapper>

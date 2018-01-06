@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="bit.dao.ScheduleDAO">
+
+    <select id="getProfit" parameterType="hashMap" resultType="hashMap">
+        SELECT 
+                reg_date "date"
+               ,sum(amount+(amount*interest_rate/100*(1-0.154)*period/12)) "sum"
+          FROM invest_info
+         WHERE order_state = 202
+           AND investor_id = #{id}
+           AND reg_date LIKE #{date}
+         GROUP BY reg_date;
+    </select>
+    
+    <select id="getLoss" parameterType="hashMap" resultType="hashMap">
+        SELECT 
+                reg_date "date"
+               ,sum(want_amount+(want_amount*interest_rate/100*(1-0.154)*want_period/12)) "sum"
+          FROM product_info
+         WHERE order_state = 202
+           AND payor_id = #{id}
+           AND reg_date LIKE #{date}
+         GROUP BY reg_date;
+    </select>
+    
+    <select id="getProfitList" parameterType="hashMap" resultType="hashMap">
+    SELECT
+           no
+           ,amount
+           ,period
+           ,deadline
+           ,interest_rate "interestRate"
+           ,(amount*interest_rate/100*(1-0.154)/12)"monthInterest"
+           ,use_flag
+           ,investor_id "investorId"
+           ,reg_date "date"
+           ,update_date "updateDate"
+           ,order_state "state"
+      FROM invest_info
+     WHERE order_state= 202
+       AND investor_id = #{id}
+       AND reg_date = #{date}
+    </select>
+    
+    <select id="getLossList" parameterType="hashMap" resultType="hashMap">
+    SELECT
+            no
+           ,want_amount "amount"
+           ,want_period "period"
+           ,deadline
+           ,interest_rate "interestRate"
+           ,(want_amount*interest_rate/100*(1-0.154)/12)"monthInterest"
+           ,use_flag
+           ,payor_id "investorId"
+           ,reg_date "date"
+           ,update_date "updateDate"
+           ,order_state "state"
+      FROM product_info
+     WHERE order_state= 202
+       AND payor_id = #{id}
+       AND reg_date = #{date}
+    </select>
+</mapper>

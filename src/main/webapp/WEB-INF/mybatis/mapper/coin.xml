@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="bit.dao.CoinDAO">
+
+     <select id="getCoinType" resultType="hashmap">
+        SELECT no,value
+          FROM coin_info
+        ORDER BY no
+    </select>
+    
+    <select id="getRCoinType" resultType="hashmap">
+        SELECT no,value
+          FROM coin_info
+        ORDER BY no DESC
+    </select>
+
+	<select id="getCoinCode" parameterType="String" resultType="String">
+        SELECT code
+          FROM coin_info
+        WHERE value LIKE #{cointype}
+    </select>
+
+</mapper>

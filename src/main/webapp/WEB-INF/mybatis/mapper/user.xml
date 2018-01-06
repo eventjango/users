@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="bit.dao.UserDAO">
+
+    <select id="selectOne" parameterType="string" resultType="user">
+        select id, name
+        from user_info
+        where name = #{name}
+    </select>
+
+    <select id="getRowCountByUserId" parameterType="string" resultType="int">
+        select count(*)
+        from user_info
+        where id = #{id}
+    </select>
+
+	<select id="getUserId" parameterType="string" resultType="string">
+        select id
+        from user_info
+        where id = #{id}
+    </select>
+
+    <select id="getUserCode" parameterType="String" resultType ="Integer">
+    	SELECT user_state
+    	  FROM user_info
+    	WHERE id LIKE #{id}
+    </select>
+    
+    <select id="getUserNo" parameterType="String" resultType ="float">
+    	SELECT no
+    	  FROM user_info
+    	WHERE id LIKE #{id}
+    </select>
+    
+    <insert id="generalSignUp" parameterType="hashmap">
+    	INSERT INTO 
+				user_info(
+									id, 
+									pw, 
+									name, 
+									phone, 
+									reg_date, 
+									update_date, 
+									user_state
+								)
+				VALUES(
+			  						#{id},
+			  						#{pw},
+			  						#{name},
+			  						#{pNum}, 
+			  						current_date, 
+			  						current_date, 
+			  						#{userType}
+								)
+    
+    </insert>
+    
+    <update id="modifyUserPw" parameterType="hashMap">
+		UPDATE user_info
+			SET pw = #{pw}
+		WHERE id = #{id}
+    </update>
+    
+    <insert id="sendQuestion" parameterType="HashMap">
+        INSERT INTO service_center_info
+        (
+            user_id
+           ,title
+           ,content
+<!--            ,type -->
+        )
+        VALUES
+        (
+            #{id}
+           ,#{title}
+           ,#{contents}
+<!--            ,#{type} -->
+        )
+    </insert>
+    
+    <select id="getQuestion" parameterType="HashMap" resultType="HashMap">
+    SELECT *
+      FROM service_center_info
+     WHERE user_id = #{id}
+       AND use_flag = true
+     ORDER BY no
+    </select>
+</mapper>

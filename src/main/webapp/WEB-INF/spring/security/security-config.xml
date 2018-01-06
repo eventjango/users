@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+             xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:sex="http://www.springframework.org/schema/security"
+             xsi:schemaLocation="http://www.springframework.org/schema/beans
+               http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+               http://www.springframework.org/schema/security
+               http://www.springframework.org/schema/security/spring-security-4.2.xsd">
+
+
+
+  <sex:http auto-config="true">
+    <intercept-url pattern="/login" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+  </sex:http>
+
+  <sex:authentication-manager>
+
+    <sex:authentication-provider>
+      <user-service>
+        <user name="guest" password="guest" authorities="ROLE_USER"/>
+      </user-service>
+    </sex:authentication-provider>
+
+  </sex:authentication-manager>
+
+
+  <!--<sex:http pattern="WEB-INF/resources/css/*" security="none"/>
+  <sex:http pattern="WEB-INF/resources/images/*" security="none"/>
+  <sex:http pattern="WEB-INF/resources/js/*" security="none"/>
+
+
+  <sex:http auto-config="true" use-expressions="true">
+
+    <sex:intercept-url pattern="/" access="permitAll()"/>
+    <sex:intercept-url pattern="/login" access="permitAll()"/>
+    <sex:intercept-url pattern="/**" access="isAuthenticated()"/>
+
+    <sex:form-login login-page="/login"
+                    login-processing-url="/login"
+                    default-target-url="/"
+                    username-parameter="id"
+                    password-parameter="pw"
+                    authentication-failure-url="/login?error"
+                    always-use-default-target="true"/>
+
+    <sex:logout invalidate-session="true"
+                logout-url="/logout"
+                logout-success-url="/home"/>
+
+
+    <sex:csrf/>
+  </sex:http>
+
+
+  <sex:authentication-manager>
+    <sex:authentication-provider>
+      <sex:user-service>
+        <sex:user name="fuck@naver.com" authorities="ROLE_USER" password="1234"/>
+      </sex:user-service>
+    </sex:authentication-provider>
+  </sex:authentication-manager>-->
+
+
+</beans:beans>

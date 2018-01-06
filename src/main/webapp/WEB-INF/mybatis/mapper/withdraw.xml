@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="bit.dao.WithdrawDAO">
+
+    <update id="withdraw" parameterType="HashMap">
+    
+		UPDATE deposit_info
+			SET amount = amount - #{value}
+		WHERE user_code = (SELECT no FROM user_info WHERE id = #{id})
+			AND amount_type = (SELECT code FROM coin_info WHERE value = #{type});
+    
+    </update>
+    
+    <insert id="withdrawApply" parameterType="HashMap">
+    
+    INSERT INTO withdraw_apply
+    (
+    
+        id
+       ,amount
+       ,amount_type
+       ,send_account
+    
+    )VALUES(
+    
+        #{id}
+       ,#{value}::INTEGER
+       ,#{type}
+       ,#{account}
+    
+    )
+    </insert>
+    
+    <select id="getAddress" parameterType="HashMap" resultType="HashMap">
+    SELECT 
+            no "no"
+            ,COALESCE(user_alias,'이름없음') "alias"
+            ,COALESCE(update_date,'-') "useDate"
+            ,account_code "accountCode"
+            ,bank_name "bankName"
+      FROM favorite_account_info
+     WHERE user_id = #{id}
+       AND type = #{type}
+       AND use_flag = true
+    
+    </select>
+    
+    <insert id="addAddress" parameterType="HashMap">
+    INSERT INTO favorite_account_info(
+        user_id
+       ,user_alias
+       ,account_code
+       ,bank_name
+       ,type
+    )VALUES(
+        #{id}
+       ,#{name}
+       ,#{address}
+       ,#{bankName}
+       ,#{type}
+    )
+    </insert>
+    
+    <delete id="removeAddress" parameterType="HashMap">
+    DELETE FROM favorite_account_info
+     WHERE no = #{value}::INTEGER
+       AND user_id = #{id}
+    </delete>
+    
+    <update id="asdfasdf" parameterType="HashMap"><!-- remove 대타 -->
+     UPDATE favorite_account_info
+        SET use_flag = true
+      WHERE no = #{value}
+        AND id = #{id}
+    
+    </update>
+
+</mapper>

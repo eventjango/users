@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="bit.dao.HomeDAO">
+
+    <select id="selectProductList" parameterType="string" resultType="product">
+        select
+		  row_number() OVER (order by p.no desc) "rn",
+          p.no "no",
+          pa.amount "wantAmount",
+          p.interest_rate "interestRate",
+          p.payor_id "payorId",
+          p.reg_date "regDate",
+          p.update_date "updateDate",
+
+          (
+	          SELECT value
+	          	 FROM coin_info
+	           WHERE code = coin_code
+	      ) "coinValue",
+
+          p.coin_amount "coinAmount",
+
+          (
+          		SELECT CAST(to_char(CAST(p.deadline AS DATE) - current_timestamp,'DD') AS INTEGER) * 24 + CAST(to_char(CAST(p.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER)
+
+          ) "deadline",
+
+          p.want_period "wantPeriod"
+
+        FROM product_info p
+		INNER JOIN product_amount_info pa on pa.product_no = p.no
+
+        where use_flag = true
+           AND CAST(to_char(CAST(p.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER) > 0
+           AND (p.order_state = 200 
+             OR  p.order_state = 201)
+        ORDER BY rn ASC
+	</select>
+
+    <select id="selectInvestList" parameterType="string" resultType="invest">
+        select
+            row_number() OVER (order by i.no desc) "rn",
+            i.no "no",
+            ia.amount "amount",
+            i.interest_rate "interestRate",
+            i.investor_id "investorId",
+            i.reg_date "regDate",
+            i.update_date "updateDate",
+                (
+                SELECT CAST(to_char(CAST(i.deadline AS DATE) - current_timestamp,'DD') AS INTEGER) * 24 + CAST(to_char(CAST(i.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER)
+                <!-- to_char(CAST(deadline AS DATE) - current_timestamp,'DD"d "HH24"h"') -->
+                ) "deadline",
+
+        i.period "period"
+
+        from invest_info i
+          INNER JOIN invest_amount_info ia on ia.invest_no = i.no
+        where use_flag = true
+        AND CAST(to_char(CAST(i.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER) > 0
+        AND (i.order_state = 200 OR  i.order_state = 201)
+        ORDER BY rn ASC
+    </select>
+
+</mapper>

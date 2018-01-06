@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+
+    <typeAliases>
+        <typeAlias type="bit.vo.RequestLog" alias="requestLog"/>
+        <typeAlias type="bit.vo.NoticeVO" alias="notice"/>
+        <typeAlias type="bit.vo.NewsVO" alias="news"/>
+        <typeAlias type="bit.vo.UserVO" alias="user"/>
+        <typeAlias type="bit.vo.CoinVO" alias="coin"/>
+        <typeAlias type="bit.vo.LoginVO" alias="login"/>
+        <typeAlias type="bit.vo.ProductVO" alias="product"/>
+        <typeAlias type="bit.vo.InvestorVO" alias="investor"/>
+        <typeAlias type="bit.vo.InvestVO" alias="invest"/>
+        <typeAlias type="bit.vo.PayorVO" alias="payor"/>
+        <typeAlias type="bit.vo.FundInvestorVO" alias="fundInvestor"/>
+        <typeAlias type="bit.vo.ProductConclusionVO" alias="productConclusion"/>
+        <typeAlias type="bit.vo.InvestConclusionVO" alias="investConclusion"/>
+    </typeAliases>
+
+</configuration>

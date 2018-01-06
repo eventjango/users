@@ -1,0 +1,816 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="bit.dao.LoanDAO">
+
+
+	<insert id="payorLoanApply" parameterType="hashmap">
+    INSERT INTO 
+            product_info
+            (
+                want_amount 
+               ,interest_rate 
+               ,payor_id 
+               ,reg_date 
+               ,update_date 
+               ,coin_code 
+               ,coin_amount 
+               ,deadline
+               ,want_period
+            )
+            VALUES
+            (
+                #{wantAmount}
+               ,#{interestRate}
+               ,(
+                   SELECT id
+                     FROM user_info
+                    WHERE no = #{userCode}
+                )
+               ,current_date 
+               ,current_date 
+               ,#{coin_type} 
+               ,#{coinAmount} 
+               ,current_date+CAST(#{deadline} AS INTEGER)
+               ,#{wantPeriod}
+            );
+    <selectKey resultType="float" keyProperty="product_no" order="AFTER">
+        SELECT currval('product_info_no_seq')
+    </selectKey>
+    </insert>
+    <update id="payorLoanApplySubMoney" parameterType="hashMap">
+    UPDATE deposit_info
+       SET amount = amount-#{coinAmount}
+     WHERE user_code = #{userCode}
+       AND amount_type = #{coin_type};
+    </update>
+
+    <insert id="productBalance" parameterType="hashMap">
+    	INSERT INTO
+    			product_amount_info(
+    					product_no,
+    					amount
+    			)
+    			VALUES(
+    					#{product_no},
+						#{wantAmount}	
+    			)
+    </insert>
+    
+    <insert id="investBalance" parameterType="hashMap">
+    	INSERT INTO
+    			invest_amount_info(
+    					invest_no,
+    					amount
+    			)
+    			VALUES(
+    					#{invest_no},
+						#{amount}	
+    			)
+    </insert>
+    
+    <insert id="investLoanApply" parameterType="hashmap">
+    INSERT INTO 
+                invest_info
+                (
+                    amount 
+                   ,interest_rate 
+                   ,investor_id 
+                   ,reg_date 
+                   ,update_date 
+                   ,deadline
+                   ,period
+                )
+                VALUES
+                (
+                    #{amount}
+                   ,#{interestRate}
+                   ,(
+                       SELECT id
+                         FROM user_info
+                        WHERE no = #{userCode}
+                   )
+                   ,current_date
+                   ,current_date 
+                   ,current_date+CAST(#{deadline} AS INTEGER)
+                   ,#{period}
+                );
+    <selectKey resultType="float" keyProperty="invest_no" order="AFTER">
+        SELECT currval('invest_info_no_seq')
+    </selectKey>
+    </insert>
+    <update id="investLoanApplySubMoney" parameterType="hashmap">
+    UPDATE deposit_info
+       SET amount = amount-#{amount}
+     WHERE user_code = #{userCode}
+       AND amount_type = (select code from coin_info WHERE value = 'KRW');
+    </update>
+
+    <select id="selectProductList" parameterType="string" resultType="product">
+        select
+		  row_number() OVER (order by p.no desc) "rn",
+          p.no "no",
+          pa.amount "wantAmount",
+          p.interest_rate "interestRate",
+          p.payor_id "payorId",
+          p.reg_date "regDate",
+          p.update_date "updateDate",
+
+          (
+	          SELECT value
+	          	 FROM coin_info
+	           WHERE code = coin_code
+	      ) "coinValue",
+
+          p.coin_amount "coinAmount",
+
+          (
+          		SELECT CAST(to_char(CAST(p.deadline AS DATE) - current_timestamp,'DD') AS INTEGER) * 24 + CAST(to_char(CAST(p.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER)
+
+          ) "deadline",
+
+          p.want_period "wantPeriod"
+
+        FROM product_info p
+		INNER JOIN product_amount_info pa on pa.product_no = p.no
+
+        where use_flag = true
+           AND CAST(to_char(CAST(p.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER) > 0
+           AND p.payor_id != #{id}
+           AND (p.order_state = 200
+             OR  p.order_state = 201)
+        ORDER BY rn ASC
+	</select>
+
+	<select id="selectFilteredProductList" parameterType="hashmap" resultType="product">
+		select
+		row_number() OVER (order by p.no desc) "rn",
+		p.no "no",
+		pa.amount "wantAmount",
+		p.interest_rate "interestRate",
+		p.payor_id "payorId",
+		p.reg_date "regDate",
+		p.update_date "updateDate",
+
+		(
+		SELECT value
+		FROM coin_info
+		WHERE code = coin_code
+		) "coinValue",
+
+		p.coin_amount "coinAmount",
+
+		(
+		SELECT CAST(to_char(CAST(p.deadline AS DATE) - current_timestamp,'DD') AS INTEGER) * 24 + CAST(to_char(CAST(p.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER)
+		<!-- to_char(CAST(deadline AS DATE) - current_timestamp,'DD"d "HH24"h"') -->
+		) "deadline",
+
+		p.want_period "wantPeriod"
+
+		FROM product_info p
+		INNER JOIN product_amount_info pa on pa.product_no = p.no
+
+		where use_flag = true
+		AND CAST(to_char(CAST(p.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER) > 0
+		AND p.payor_id != #{id}
+		AND (p.order_state = 200
+		  OR  p.order_state = 201)
+
+		<if test="(minPeriod != null and minPeriod != '') and (maxPeriod != null and maxPeriod != '')">
+			AND p.want_period BETWEEN #{minPeriod}::INTEGER AND #{maxPeriod}::INTEGER
+		</if>
+
+		<if test="(minRate != null and minRate != '') and (maxRate != null and maxRate != '')">
+			AND p.interest_rate BETWEEN #{minRate}::INTEGER AND #{maxRate}::INTEGER
+		</if>
+
+		<if test="(minAmount != null and minAmount != '') and (maxAmount != null and maxAmount != '')">
+			AND p.want_amount BETWEEN #{minAmount}::INTEGER and #{maxAmount}::INTEGER
+		</if>
+
+		ORDER BY rn ASC
+	</select>
+    
+    <select id="selectInvestList" parameterType="string" resultType="invest">
+        select
+		  row_number() OVER (order by i.no desc) "rn",
+          i.no "no",
+          ia.amount "amount",
+          i.interest_rate "interestRate",
+          i.investor_id "investorId",
+          i.reg_date "regDate",
+          i.update_date "updateDate",
+          (
+          		SELECT CAST(to_char(CAST(i.deadline AS DATE) - current_timestamp,'DD') AS INTEGER) * 24 + CAST(to_char(CAST(i.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER)
+          		<!-- to_char(CAST(deadline AS DATE) - current_timestamp,'DD"d "HH24"h"') -->
+          ) "deadline",
+          
+          i.period "period"
+
+        from invest_info i
+        INNER JOIN invest_amount_info ia on ia.invest_no = i.no
+        where use_flag = true
+           AND CAST(to_char(CAST(i.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER) > 0
+           AND i.investor_id != #{id}
+           AND (i.order_state = 200
+             OR  i.order_state = 201)
+        ORDER BY rn ASC
+    </select>
+
+	<select id="selectFilteredInvestList" parameterType="hashmap" resultType="invest">
+		select
+		row_number() OVER (order by i.no desc) "rn",
+		i.no "no",
+		ia.amount "amount",
+		i.interest_rate "interestRate",
+		i.investor_id "investorId",
+		i.reg_date "regDate",
+		i.update_date "updateDate",
+		(
+		SELECT CAST(to_char(CAST(i.deadline AS DATE) - current_timestamp,'DD') AS INTEGER) * 24 + CAST(to_char(CAST(i.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER)
+		<!-- to_char(CAST(deadline AS DATE) - current_timestamp,'DD"d "HH24"h"') -->
+		) "deadline",
+
+		i.period "period"
+
+		from invest_info i
+		INNER JOIN invest_amount_info ia on ia.invest_no = i.no
+		where use_flag = true
+		AND CAST(to_char(CAST(i.deadline AS DATE) - current_timestamp,'HH24') AS INTEGER) > 0
+		AND i.investor_id != #{id}
+		AND (i.order_state = 200
+		  OR  i.order_state = 201)
+		
+		<if test="(minPeriod != null and minPeriod != '') and (maxPeriod != null and maxPeriod != '')">
+			AND i.period BETWEEN #{minPeriod}::INTEGER AND #{maxPeriod}::INTEGER
+		</if>
+
+		<if test="(minRate != null and minRate != '') and (maxRate != null and maxRate != '')">
+			AND i.interest_rate BETWEEN #{minRate}::INTEGER AND #{maxRate}::INTEGER
+		</if>
+
+		<if test="(minAmount != null and minAmount != '') and (maxAmount != null and maxAmount != '')">
+			AND i.amount BETWEEN #{minAmount}::INTEGER and #{maxAmount}::INTEGER
+		</if>
+		
+		ORDER BY rn ASC
+
+	</select>
+    
+    <select id="selectProductInfo" parameterType="Integer" resultType="product">
+		 SELECT
+			  p.no "no",
+			  pa.amount "wantAmount",
+			  p.interest_rate "interestRate",
+			  p.payor_id "payorId",
+			  (
+					select name
+					from user_info
+					where id = p.payor_id
+			  ) "payorName",
+			  p.reg_date "regDate",
+			  p.update_date "updateDate",
+
+			  (
+				  SELECT value
+					 FROM coin_info
+				   WHERE code = coin_code
+			  ) "coinValue",
+
+			  p.coin_amount "coinAmount",
+			  p.want_period "wantPeriod",
+			  p.deadline "deadline",
+			  (
+					CAST(CAST(CAST(deadline AS DATE) + INTERVAL '1months' * p.want_period AS DATE) AS VARCHAR)
+			  ) "dueDate"
+		  FROM product_info p
+				INNER JOIN product_amount_info pa on p.no = pa.product_no
+		WHERE p.no = #{productNo}
+		 AND p.use_flag = true
+    </select>
+
+	
+	<insert id="insertInvestor" parameterType="investor">
+
+		INSERT INTO investor_info
+		(
+			investor_id,
+			postCode,
+			address1,
+			address2,
+			add_path,
+			recommendation_code,
+			personal_code,
+			account_code,
+			bank_name,
+			is_license
+		)
+
+		VALUES
+		(
+			#{userId},
+			#{postCode}::INTEGER,
+			#{address1},
+			#{address2},
+			#{addPath},
+			#{recommendationCode},
+			#{personalCode},
+			#{accountCode},
+			#{bankName},
+			'Y'
+		);
+
+	</insert>
+	<update id="insertInvestorUp" parameterType="investor">
+		UPDATE user_info
+		   SET user_state = (select code from state_info where value = 'USER_INVEST')
+		 WHERE id = #{userId}
+	</update>
+	
+	<insert id="insertPayor" parameterType="payor">
+
+		INSERT INTO Payor_info
+		(
+			payor_id,
+			postCode,
+			address1,
+			address2,
+			add_path,
+			recommendation_code,
+			personal_code,
+			account_code,
+			bank_name,
+			is_license
+		)
+
+		VALUES
+		(
+			#{userId},
+			#{postCode}::INTEGER,
+			#{address1},
+			#{address2},
+			#{addPath},
+			#{recommendationCode},
+			#{personalCode},
+			#{accountCode},
+			#{bankName},
+			'Y'
+		);
+
+	</insert>
+	<update id="insertPayorUp" parameterType="payor">
+		UPDATE user_info
+		   SET user_state = (select code from state_info where value = 'USER_INVEST')
+		 WHERE id = #{userId};
+	</update>
+	
+	<insert id="investApply" parameterType="hashmap">
+		INSERT INTO product_order_info
+		(
+			investor_id,
+			payor_id,
+			amount,
+			product_no,
+			reg_date,
+			update_date
+		)
+
+		VALUES(
+			#{investorId},
+			#{payorId},
+			CAST(#{amount} AS INTEGER),
+			CAST(#{number} AS INTEGER),
+			current_date,
+			current_date
+		);
+
+		<selectKey resultType="string" keyProperty="order_no" order="AFTER">
+			SELECT currval('"product_order_info_no_seq"')
+		</selectKey>
+	</insert>
+	<update id="investApplyState" parameterType="hashmap">
+	UPDATE product_info
+       SET order_state = 201
+     WHERE no = #{number}::INTEGER;
+	</update>
+	<update id="investApplySubAmount" parameterType="hashmap">
+	UPDATE product_amount_info
+       SET amount = amount-CAST(#{amount} AS INTEGER)
+     WHERE product_no = CAST(#{number} AS INTEGER);
+	</update>
+	<update id="investApplySubMoney" parameterType="hashmap">
+	UPDATE deposit_info
+       SET amount = amount-CAST(#{amount} AS INTEGER)
+     WHERE user_code = (select no from user_info where id = #{investorId})
+       AND amount_type = (select code from coin_info WHERE value = 'KRW');
+	</update>
+	<update id="investApplyAddMoney" parameterType="hashmap">
+	UPDATE deposit_info
+       SET amount = amount+CAST(#{amount} AS INTEGER)
+     WHERE user_code = (select no from user_info where id = #{payorId})
+       AND amount_type = (select code from coin_info WHERE value = 'KRW');
+	</update>
+	
+	<insert id="payorApply" parameterType="hashmap">
+		INSERT INTO invest_order_info
+		(
+			investor_id,
+			payor_id,
+			amount,
+			invest_no,
+			reg_date,
+			update_date
+		)
+
+		VALUES(
+			#{investorId},
+			#{payorId},
+			CAST(#{amount} AS INTEGER),
+			CAST(#{number} AS INTEGER),
+			current_date,
+			current_date
+		);
+
+		<selectKey resultType="string" keyProperty="order_no" order="AFTER">
+			SELECT currval('"invest_order_info_no_seq"')
+		</selectKey>
+	</insert>
+	<update id="payorApplyState" parameterType="hashmap">
+	UPDATE invest_info
+       SET order_state = 201
+     WHERE no = #{number}::INTEGER;
+	</update>
+	<update id="payorApplySubCoin" parameterType="hashmap">
+	UPDATE deposit_info
+       SET amount = amount-CAST(#{coinAmount} AS INTEGER)
+     WHERE user_code = (select no from user_info where id = #{payorId})
+       AND amount_type = (select code from coin_info WHERE value = #{coinType});
+	</update>
+	<update id="payorApplyAddCoin" parameterType="hashmap">
+    UPDATE deposit_info
+       SET amount = amount+CAST(#{coinAmount} AS INTEGER)
+     WHERE user_code = (select no from user_info where id = #{investorId})
+       AND amount_type = (select code from coin_info WHERE value = #{coinType});
+	</update>
+	<update id="payorApplyAddMoney" parameterType="hashmap">
+	UPDATE deposit_info
+       SET amount = amount+CAST(#{amount} AS INTEGER)
+     WHERE user_code = (select no from user_info where id = #{payorId})
+       AND amount_type = (select code from coin_info WHERE value = 'KRW');
+	</update>
+	<update id="payorApplySubMoney" parameterType="hashmap">
+	UPDATE invest_amount_info
+       SET amount = amount-CAST(#{amount} AS INTEGER)
+     WHERE invest_no = CAST(#{number} AS INTEGER);
+	</update>
+
+	<insert id="investTransaction" parameterType="hashmap">
+		INSERT INTO tx_product_order_info
+		(
+			product_order_no,
+			investor_id,
+			payor_id,
+			reg_date,
+			update_date,
+			amount
+		)
+		VALUES
+		(
+			#{order_no}::INTEGER,
+			#{investorId},
+			#{payorId},
+			CURRENT_DATE,
+			CURRENT_DATE,
+			#{amount}::INTEGER
+		)
+	</insert>
+	
+	<insert id="payorTransaction" parameterType="hashmap">
+		INSERT INTO tx_invest_order_info
+		(
+			invest_order_no,
+			investor_id,
+			payor_id,
+			reg_date,
+			update_date
+		)
+		VALUES
+		(
+			#{order_no}::INTEGER,
+			#{investorId},
+			#{payorId},
+			CURRENT_DATE,
+			CURRENT_DATE
+		)
+	</insert>
+	<select id="payorLoanWaitList" parameterType="HashMap" resultType="HashMap">
+			SELECT
+						no "no",
+						want_amount "amount",
+						interest_rate "interestRate",
+						payor_id "payorId",
+						update_date "regDate",
+						(
+							SELECT value
+						    FROM coin_info
+							 WHERE code = coin_code
+						)"coinType",
+						coin_amount "coinAmount",
+						deadline,
+						want_period "wantPeriod",
+						(
+									   SELECT value
+									     FROM state_info
+									   WHERE code = order_state
+						) "state"
+					FROM product_info
+					WHERE order_state = CAST(#{state} AS INTEGER)
+					AND payor_id = #{id}
+					AND use_flag = TRUE
+	</select>
+	<select id="payorLoanProgressList" parameterType="HashMap" resultType="HashMap">
+				SELECT
+						p.no "no",
+						want_amount "amount",
+						(p.want_amount - pa.amount) "balance",
+						interest_rate "interestRate",
+						payor_id "payorId",
+						update_date "regDate",
+						(
+							SELECT value
+						    FROM coin_info
+							 WHERE code = coin_code
+						)"coinType",
+						coin_amount "coinAmount",
+						deadline,
+						want_period "wantPeriod",
+						(
+									   SELECT value
+									     FROM state_info
+									   WHERE code = order_state
+						) "state"
+					FROM product_info p
+					INNER JOIN  product_amount_info pa on p.no = pa.product_no
+					WHERE (order_state = CAST(#{state} AS INTEGER) OR order_state = CAST(#{state} AS INTEGER)+1)
+					AND payor_id = #{id}
+					<!-- AND use_flag = TRUE -->
+	</select>
+
+	<select id="investorLoanWaitList" parameterType="HashMap" resultType="HashMap">
+    SELECT
+           no "no"
+          ,amount "amount"
+	      ,period "period"
+	      ,deadline "deadline"
+          ,interest_rate "interestRate"
+          ,investor_id "investorId"
+	      ,reg_date "regDate"
+	      ,update_date "updateDate"
+	      ,(
+              SELECT value 
+                FROM state_info 
+               WHERE code = order_state
+           ) "state"
+      FROM invest_info
+     WHERE order_state = CAST(#{state} AS INTEGER)
+       AND investor_id = #{id}
+       AND use_flag = true
+    ORDER BY no
+	</select>
+	
+	<select id="investorLoanProgressList" parameterType="HashMap" resultType="HashMap">
+    SELECT
+           I.no "no"
+          ,I.amount "amount"
+          ,ia.amount "balance"
+          ,interest_rate "interestRate"
+          ,investor_id "investorId"
+          ,update_date "regDate"
+          ,deadline
+          ,period "period"
+          ,(
+              SELECT value
+                FROM state_info
+               WHERE code = order_state
+          ) "state"
+      FROM invest_info I
+     INNER JOIN  INVEST_amount_info Ia on I.no = Ia.invest_no
+     WHERE (order_state = CAST(#{state} AS INTEGER) OR order_state = CAST(#{state} AS INTEGER)+1) 
+       AND investor_id = #{id}
+       <!-- AND use_flag = TRUE -->
+     ORDER BY i.no
+	</select>
+
+	<update id="investCancel" parameterType="HashMap">
+    UPDATE invest_info
+       SET use_flag = FALSE
+     WHERE investor_id = #{id}
+       AND no = #{no}::integer
+	</update>
+	
+	<update id="payorCancel" parameterType="HashMap">
+    UPDATE product_info
+       SET use_flag = FALSE
+     WHERE payor_id = #{id}
+       AND no = #{no}::integer
+	</update>
+
+
+	<select id="getMoney" parameterType="HashMap" resultType="String">
+			SELECT amount
+			 FROM deposit_info 
+		   WHERE user_code = (
+		   											SELECT no 
+		   											  FROM user_info 
+		   											WHERE id = #{id}
+		   										)
+		  		AND amount_type = (
+		   	   											SELECT code 
+		   	   											  FROM coin_info 
+		   	   											WHERE value = #{type}
+		   	   										)
+	</select>
+
+ 	<select id="selectInvestInfo" parameterType="Integer" resultType="invest">
+		SELECT
+			  i.no "no",
+			  ia.amount "amount",
+			  i.interest_rate "interestRate",
+			  i.investor_id "investorId",
+			  (
+					select name
+					from user_info
+					where id = i.investor_id			  
+			  ) "investorName",
+			  i.reg_date "regDate",
+			  i.update_date "updateDate",
+			  i.period "period",
+			  i.deadline "deadline",
+			  (
+					CAST(CAST(CAST(i.deadline AS DATE) + INTERVAL '1months' * i.period AS DATE) AS VARCHAR)<!-- CAST(deadline AS DATE) + period -->
+			  ) "dueDate"
+		  FROM invest_info i
+		  INNER JOIN invest_amount_info ia on ia.invest_no = i.no
+		WHERE i.no = #{productNo}
+		 AND use_flag = true
+    </select>
+
+	<select id="getProductRestAmount" parameterType="hashmap" resultType="INTEGER">
+		SELECT amount
+		  FROM product_amount_info
+	   WHERE product_no = #{number}::INTEGER
+	</select>
+
+	<update id="updateProductForInvalid" parameterType="hashmap">
+		UPDATE product_info
+        SET use_flag = FALSE,order_state = 202,update_date = current_date
+        where no = #{number}::INTEGER
+	</update>
+	
+	<select id="getInvestRestAmount" parameterType="hashmap" resultType="INTEGER">
+		SELECT amount
+		  FROM invest_amount_info
+	   WHERE invest_no = #{number}::INTEGER
+	</select>
+
+	<update id="updateInvestForInvalid" parameterType="hashmap">
+		UPDATE invest_info
+        SET use_flag = FALSE,order_state = 202,update_date = current_date 
+        where no = #{number}::INTEGER
+	</update>
+
+	<!--체결된 상품정보-->
+	<select id="selectProductConclusion" parameterType="int" resultType="hashmap">
+		select
+		  product_no "productNo", o.payor_id "payorId", want_amount "wantAmount", sum(amount) "totalAmount",
+		  string_agg((select no from investor_info where investor_id = o.investor_id)::CHARACTER VARYING, ',') "investors"
+		from product_order_info o LEFT OUTER JOIN product_info p on p.no = o.product_no
+				WHERE product_no = #{productNo}
+				AND p.order_state = 202
+			  GROUP BY product_no, o.payor_id, want_amount
+	</select>
+
+
+	<select id="selectProductConclusionList" parameterType="int" resultType="hashmap">
+		select
+		  product_no "productNo",
+		  o.payor_id "payorId",
+		  o.investor_id "investorId",
+		  o.amount "amount",
+		  p.interest_payment_date "interestPaymentDate"
+		from product_order_info o
+		  LEFT OUTER JOIN product_info p on p.no = o.product_no
+				where product_no = #{number};
+	</select>
+
+	<select id="selectInvestConclusionList" parameterType="int" resultType="hashmap">
+		select
+		  invest_no "investNo",
+		  o.investor_id "investorId",
+		  o.payor_id "payorId",
+		  o.amount "amount",
+		  i.interest_payment_date "interestPaymentDate"
+			from invest_order_info o
+			  LEFT OUTER JOIN  invest_info i on i.no = o.invest_no
+				where invest_no = #{number}
+	</select>
+
+	
+	<!-- 체결된 상품을 conclusion에 등록 -->
+	
+	<insert id="insertProductConclusion" parameterType="productConclusion">
+	  INSERT INTO product_conclusion_info
+        (
+          product_no,
+          order_state,
+          investor_id,
+          tx_start_date,
+          tx_end_date,
+          amount,
+          interest_payment_date
+        )
+        VALUES
+        (
+          #{productNo}::INTEGER ,
+          #{orderState}::INTEGER ,
+          #{investorId},
+          CURRENT_DATE ,
+          (select
+			  (
+				CAST(CAST(CAST(deadline AS DATE) + INTERVAL '1months' * want_period AS DATE) AS VARCHAR)
+			  ) "dueDate"
+			from product_info where no = #{productNo}::INTEGER ),
+          #{amount}::INTEGER ,
+          CURRENT_DATE + 1
+        )
+	</insert>
+
+
+	<!--체결된 투자상품을 conclusion에 등록-->
+	<insert id="insertInvestConclusion" parameterType="investConclusion">
+
+		INSERT INTO invest_conclusion_info
+		(
+          invest_no,
+          order_state,
+          payor_id,
+          tx_start_date,
+          tx_end_date,
+          amount,
+          interest_payment_date
+        )
+        VALUES
+        (
+          #{investNo}::INTEGER ,
+          #{orderState}::INTEGER ,
+          #{payorId},
+          CURRENT_DATE ,
+          (select
+			  (
+				CAST(CAST(CAST(deadline AS DATE) + INTERVAL '1months' * want_period AS DATE) AS VARCHAR)
+			  ) "dueDate"
+			from invest_info where no = #{investNo}::INTEGER ),
+          #{amount}::INTEGER ,
+          CURRENT_DATE+1
+        )
+	</insert>
+
+	<delete id="deleteOrderByProductNo" parameterType="string">
+		delete from product_order_info o
+			USING tx_product_order_info t
+		where t.product_order_no = o.no
+		AND o.product_no = #{productNo}::INTEGER;
+
+		update product_info
+		SET use_flag = TRUE , order_state = 200
+		where no = #{productNo}::INTEGER
+	</delete>
+
+	<delete id="deleteOrderByInvestNo" parameterType="string">
+		delete from invest_order_info o
+			USING tx_invest_order_info t
+		where t.invest_order_no = o.no
+		AND o.invest_no = #{investNo}::INTEGER;
+
+		update invest_info
+		SET use_flag = TRUE , order_state = 200
+		where no = #{investNo}::INTEGER
+	</delete>
+	
+	<insert id="insertCurrentPrice" parameterType="HashMap">
+	INSERT INTO coin_current_price (
+        coin_type
+       ,coin_amount
+    )VALUES (
+        #{coinType}
+       ,#{currentPrice}
+    )
+	
+	
+	
+	</insert>
+	
+	
+</mapper>
